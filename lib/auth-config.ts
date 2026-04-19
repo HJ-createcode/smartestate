@@ -17,7 +17,8 @@ export const authConfig = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 jours
+    maxAge: 7 * 24 * 60 * 60, // 7 jours
+    updateAge: 24 * 60 * 60, // prolonge la session tant qu'elle est active
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -32,6 +33,13 @@ export const authConfig = {
       }
       // Détermine le flag admin à partir de l'env var ADMIN_EMAILS.
       // Edge-compatible : pas d'import Prisma ici.
+      //
+      // ⚠️ SÉCURITÉ : `session.user.isAdmin` est un flag pratique pour
+      // l'affichage côté client (afficher/cacher le bouton Admin dans la
+      // TopNav). Il ne DOIT JAMAIS servir seul à autoriser une action
+      // côté serveur. Toutes les routes admin doivent re-vérifier via
+      // `getAdminSession()` / `isAdminEmail()` qui relisent l'env var
+      // au moment de la requête. Voir lib/admin.ts.
       if (session.user?.email) {
         const admins = (process.env.ADMIN_EMAILS ?? "")
           .split(",")

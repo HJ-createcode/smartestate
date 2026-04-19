@@ -41,7 +41,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     const data: Prisma.AssetUpdateInput = {};
     if (parsed.data.name !== undefined) data.name = parsed.data.name;
-    if (parsed.data.kind !== undefined) data.kind = parsed.data.kind;
+    // `kind` ne peut transitionner que dans un sens : simulation → bien.
+    // Tout autre changement est ignoré silencieusement pour préserver la
+    // cohérence des stats (une simulation ne se dédouble pas en bien puis
+    // redevient simulation, un bien ne revient pas simulation).
+    if (parsed.data.kind !== undefined) {
+      const current = result.asset.kind;
+      if (current === "simulation" && parsed.data.kind === "bien") {
+        data.kind = "bien";
+      }
+      // sinon on n'écrit rien — pas d'erreur côté client pour ne pas casser
+      // des PUT de formulaire qui ré-envoient le kind courant.
+    }
     if (parsed.data.status !== undefined) data.status = parsed.data.status;
     if (parsed.data.inputs !== undefined)
       data.inputs = parsed.data.inputs as Prisma.InputJsonValue;
@@ -57,7 +68,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     });
     return NextResponse.json({ ok: true, asset: updated });
   } catch (e) {
-    console.error("[asset PUT]", e);
+    console.error("[asset PUT]", e instanceof Error ? e.message : String(e));
     return NextResponse.json({ ok: false, error: "Erreur serveur" }, { status: 500 });
   }
 }

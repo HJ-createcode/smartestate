@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,16 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
+  // Rate-limit : 10 créations / 10 min / IP (brute-force / spam-register).
+  const ip = clientIp(req);
+  const rl = rateLimit(`signup:${ip}`, { max: 10, windowMs: 10 * 60_000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Trop de tentatives, réessayez plus tard." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   try {
     const json = await req.json();
     const parsed = schema.safeParse(json);
@@ -24,23 +35,31 @@ export async function POST(req: Request) {
     const { email, password, name } = parsed.data;
     const normalized = email.toLowerCase().trim();
 
-    const existing = await prisma.user.findUnique({ where: { email: normalized } });
+    const existing = await prisma.user.findUnique({
+      where: { email: normalized },
+    });
+
     if (existing) {
-      return NextResponse.json(
-        { ok: false, error: "Un compte existe déjà avec cet email" },
-        { status: 409 }
-      );
+      // Anti-énumération : on renvoie toujours la même réponse succès et on
+      // effectue un bcrypt factice pour égaliser le temps de réponse.
+      // L'auto-login côté client échouera (mauvais mot de passe) pour un
+      // attaquant qui tente un email déjà pris, et redirigera proprement
+      // vers /login. Un nouvel utilisateur légitime ne voit rien.
+      await bcrypt.hash(password, 12);
+      return NextResponse.json({ ok: true });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: { email: normalized, passwordHash, name },
-      select: { id: true, email: true, name: true },
+      select: { id: true },
     });
 
-    return NextResponse.json({ ok: true, user });
+    return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("[signup]", e);
+    // Ne logger que le message, pas la stack (évite fuite de noms de
+    // colonnes/contraintes Prisma dans les logs Vercel).
+    console.error("[signup]", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { ok: false, error: "Erreur serveur" },
       { status: 500 }

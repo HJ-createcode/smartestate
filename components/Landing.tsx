@@ -295,10 +295,9 @@ function FeatureBlock({
       <div className="text-xs font-bold text-sun-700 tracking-wider">
         {number}
       </div>
-      <h3
-        className="mt-2 text-lg font-semibold text-stone-900"
-        dangerouslySetInnerHTML={{ __html: title }}
-      />
+      <h3 className="mt-2 text-lg font-semibold text-stone-900">
+        {title.replace(/&nbsp;/g, "\u00A0")}
+      </h3>
       <p className="mt-2 text-stone-700 text-sm leading-relaxed">{body}</p>
     </div>
   );

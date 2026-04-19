@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ ok: true, asset });
   } catch (e) {
-    console.error("[assets POST]", e);
+    console.error("[assets POST]", e instanceof Error ? e.message : String(e));
     return NextResponse.json({ ok: false, error: "Erreur serveur" }, { status: 500 });
   }
 }

@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     );
     return NextResponse.json({ ok: true, count: created.length });
   } catch (e) {
-    console.error("[bulk-import]", e);
+    console.error("[bulk-import]", e instanceof Error ? e.message : String(e));
     return NextResponse.json({ ok: false, error: "Erreur serveur" }, { status: 500 });
   }
 }
