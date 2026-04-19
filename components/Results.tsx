@@ -48,11 +48,9 @@ interface ResultsProps {
 }
 
 export function Results({ onValidate, onConvert, status, kind }: ResultsProps = {}) {
-  const { results, loading, error } = useInputs((s) => ({
-    results: s.results,
-    loading: s.loading,
-    error: s.error,
-  }));
+  const results = useInputs((s) => s.results);
+  const loading = useInputs((s) => s.loading);
+  const error = useInputs((s) => s.error);
 
   if (loading && !results) {
     return (

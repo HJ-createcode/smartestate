@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useAccount } from "@/lib/store/account";
 import { AssetCard } from "@/components/AssetCard";
@@ -19,8 +19,13 @@ export function Dashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const mode = useAccount((s) => s.mode);
-  const list = useAccount((s) => s.list());
+  const assets = useAccount((s) => s.assets);
+  const order = useAccount((s) => s.order);
   const createSimulation = useAccount((s) => s.createSimulation);
+  const list = useMemo(
+    () => order.map((id) => assets[id]).filter((a): a is NonNullable<typeof a> => !!a),
+    [order, assets]
+  );
 
   const biens = list.filter((a) => a.kind === "bien");
   const simulations = list.filter((a) => a.kind === "simulation");
