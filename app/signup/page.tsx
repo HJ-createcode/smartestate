@@ -40,7 +40,7 @@ export default function SignupPage() {
         return;
       }
       await migrateLocalAssetsIfAny();
-      router.push("/");
+      router.push("/app");
       router.refresh();
     } catch {
       setError("Une erreur est survenue. Réessaie.");

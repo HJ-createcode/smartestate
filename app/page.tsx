@@ -1,13 +1,11 @@
-import { Dashboard } from "@/components/Dashboard";
 import { TopNav } from "@/components/TopNav";
-import { AccountSync } from "@/components/AccountSync";
+import { Landing } from "@/components/Landing";
 
 export default function Home() {
   return (
     <>
-      <AccountSync />
       <TopNav />
-      <Dashboard />
+      <Landing />
     </>
   );
 }

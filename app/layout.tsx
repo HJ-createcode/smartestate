@@ -11,9 +11,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SmartEstate — Simulateur immobilier SCI",
+  title: "SmartEstate — Simuler un investissement locatif (IR vs IS)",
   description:
-    "Simulateur détaillé de projet immobilier en SCI, comparatif IR vs IS sur 10 ans.",
+    "Comparez IR et IS sur 10 ans pour votre projet immobilier : rendement, cash-flow, plus-value. Barèmes fiscaux 2026.",
 };
 
 export default function RootLayout({

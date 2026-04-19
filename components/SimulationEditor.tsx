@@ -152,7 +152,7 @@ export function SimulationEditor({ assetId }: { assetId: string }) {
       )
     ) {
       convertToBien(assetId);
-      router.push("/");
+      router.push("/app");
     }
   }
 
@@ -161,7 +161,7 @@ export function SimulationEditor({ assetId }: { assetId: string }) {
       <TopNav
         crumb={
           <span className="flex items-center gap-2">
-            <Link href="/" className="hover:text-sun-700">
+            <Link href="/app" className="hover:text-sun-700">
               Mon espace
             </Link>
             <span className="text-stone-300">›</span>

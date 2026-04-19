@@ -7,12 +7,10 @@ out/
 dist/
 build/
 
-# Environment files
+# Environment files (jamais commiter, contient des secrets)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
 # OS
 .DS_Store
@@ -42,3 +40,6 @@ next-env.d.ts
 *.xls
 /rentasci.xlsx
 /docs/rentasci*
+
+.vercel
+.env*.local
