@@ -9,6 +9,9 @@ import type { NextAuthConfig } from "next-auth";
  * qui est importé uniquement depuis des routes Node.js.
  */
 export const authConfig = {
+  // Faire confiance à l'hôte courant — requis pour les domaines custom et
+  // utile sur Vercel quand l'URL publique diffère de celle auto-détectée.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
