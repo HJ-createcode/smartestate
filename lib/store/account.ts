@@ -385,6 +385,7 @@ export const useAccount = create<AccountStore>()(
     }),
     {
       name: "smartestate-account",
+      version: 2,
       partialize: (s) =>
         // En mode local on persiste tout ; en mode remote on ne persiste rien
         // (les données sont sur le serveur, pas de cache local pour éviter
@@ -392,6 +393,32 @@ export const useAccount = create<AccountStore>()(
         s.mode === "local"
           ? { assets: s.assets, order: s.order, mode: s.mode }
           : { mode: s.mode },
+      migrate: (persistedState: unknown, version: number) => {
+        // v1 → v2 : ajoute le champ `detention` dans chaque asset qui en
+        // manque (créés avant l'introduction de ce champ).
+        const state = (persistedState as {
+          assets?: Record<string, Asset>;
+          order?: string[];
+          mode?: Mode;
+        }) || {};
+        if (version < 2 && state.assets) {
+          const fixed: Record<string, Asset> = {};
+          for (const [id, a] of Object.entries(state.assets)) {
+            if (!a) continue;
+            const inputs = a.inputs || INPUTS_INITIAUX;
+            fixed[id] = {
+              ...a,
+              inputs: {
+                ...INPUTS_INITIAUX,
+                ...inputs,
+                detention: inputs.detention ?? INPUTS_INITIAUX.detention,
+              },
+            };
+          }
+          return { ...state, assets: fixed };
+        }
+        return state;
+      },
     }
   )
 );

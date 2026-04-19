@@ -35,10 +35,9 @@ export function Dashboard() {
     (acc, a) => {
       const s = a.snapshot;
       if (!s) return acc;
+      const regime = a.inputs.detention?.regimeFiscal ?? "ir_foncier_reel";
       const cash =
-        a.inputs.detention.regimeFiscal === "is"
-          ? s.cashFlowMensuelIS
-          : s.cashFlowMensuelIR;
+        regime === "is" ? s.cashFlowMensuelIS : s.cashFlowMensuelIR;
       return {
         cashFlowMensuel: acc.cashFlowMensuel + cash,
         mensualiteMensuelle:

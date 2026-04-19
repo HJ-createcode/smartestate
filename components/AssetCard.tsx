@@ -24,12 +24,18 @@ export function AssetCard({ asset }: { asset: Asset }) {
 
   const isBien = asset.kind === "bien";
   const snap = asset.snapshot;
-  const mode = asset.inputs.detention.mode;
-  const regime = asset.inputs.detention.regimeFiscal;
+  // Défensif : les assets créés avant l'ajout du champ detention n'ont
+  // pas cette structure. On fournit un fallback pour ne pas crasher.
+  const detention = asset.inputs.detention ?? {
+    mode: "sci_ir" as const,
+    regimeFiscal: "ir_foncier_reel" as const,
+  };
+  const mode = detention.mode;
+  const regime = detention.regimeFiscal;
 
   const cashFlowMonthly =
     snap
-      ? asset.inputs.detention.regimeFiscal === "is"
+      ? regime === "is"
         ? snap.cashFlowMensuelIS
         : snap.cashFlowMensuelIR
       : 0;
