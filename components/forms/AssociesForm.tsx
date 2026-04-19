@@ -48,6 +48,18 @@ export function AssociesForm() {
         </p>
       </div>
 
+      <div className="info-box">
+        <div className="info-box-title">💡 Pourquoi ces informations ?</div>
+        <p>
+          L&rsquo;impôt supplémentaire généré par un revenu foncier dépend
+          directement de la tranche marginale d&rsquo;imposition (TMI) de
+          chaque associé. Plus la TMI est haute, plus le régime IR devient
+          défavorable et plus l&rsquo;option IS prend son sens. Saisir le
+          revenu net imposable et le nombre de parts permet un calcul
+          personnalisé plutôt qu&rsquo;une estimation à 30 %.
+        </p>
+      </div>
+
       {associes.map((a, i) => (
         <div key={i} className="card space-y-4">
           <div className="flex items-center justify-between">

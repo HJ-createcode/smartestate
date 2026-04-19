@@ -23,8 +23,22 @@ export function AmortissementForm() {
         <p className="section-sub">
           Uniquement utilisé dans le régime IS. La somme des proportions doit
           faire 100 %. Le terrain n&rsquo;est jamais amortissable.
-          La durée d&rsquo;amortissement dépend du type de bien : habitation 40
-          à 50 ans, commercial 20 à 50 ans, industriel 20 à 25 ans.
+        </p>
+      </div>
+
+      <div className="info-box">
+        <div className="info-box-title">💡 Qu&rsquo;est-ce que l&rsquo;amortissement comptable ?</div>
+        <p className="mb-2">
+          L&rsquo;amortissement consiste à déduire chaque année une fraction
+          du prix du bien du résultat imposable de la société, comme si le
+          bien perdait de la valeur. C&rsquo;est le levier le plus puissant
+          de la SCI à l&rsquo;IS : souvent, il suffit à effacer
+          l&rsquo;imposition pendant 20 ans.
+        </p>
+        <p className="text-xs text-stone-600">
+          Durées habituelles : habitation 40 à 50 ans, commercial 20 à 50 ans,
+          industriel 20 à 25 ans. Les composants (toiture, électricité…) ont
+          des durées plus courtes qu&rsquo;un gros œuvre.
         </p>
       </div>
 

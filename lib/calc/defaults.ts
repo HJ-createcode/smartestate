@@ -8,6 +8,10 @@ export const INPUTS_INITIAUX: InputsProjet = {
   fraisAgence: 0,
   fraisRecherche: 0,
   anneeAcquisition: new Date().getFullYear(),
+  detention: {
+    mode: "sci_ir",
+    regimeFiscal: "ir_foncier_reel",
+  },
   financement: {
     montantEmprunt: 150_000,
     tauxNominal: 0.035,

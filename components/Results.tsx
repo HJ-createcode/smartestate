@@ -40,7 +40,14 @@ function KPI({
   );
 }
 
-export function Results() {
+interface ResultsProps {
+  onValidate?: () => void;
+  onConvert?: () => void;
+  status?: "draft" | "validated";
+  kind?: "simulation" | "bien";
+}
+
+export function Results({ onValidate, onConvert, status, kind }: ResultsProps = {}) {
   const { results, loading, error } = useInputs((s) => ({
     results: s.results,
     loading: s.loading,
@@ -85,10 +92,50 @@ export function Results() {
       <div>
         <h2 className="section-title">Synthèse</h2>
         <p className="section-sub">
-          Tous les résultats ci-dessous sont calculés côté serveur et reflètent
-          les derniers paramètres saisis.
+          Tous les résultats ci-dessous sont recalculés automatiquement à
+          chaque modification des paramètres. Quand tu es satisfait du
+          scénario, valide la simulation pour l&rsquo;enregistrer sur ton
+          espace.
         </p>
       </div>
+
+      {/* CTA valider / transformer */}
+      {(onValidate || onConvert) && (
+        <div className="card-accent flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="font-semibold text-stone-900">
+              {kind === "bien"
+                ? "Bien enregistré dans ton patrimoine"
+                : status === "validated"
+                ? "Simulation validée"
+                : "Satisfait de ce scénario ?"}
+            </div>
+            <div className="text-sm text-stone-700 mt-0.5">
+              {kind === "bien"
+                ? "Tu peux ajuster les paramètres, les KPIs du tableau de bord seront mis à jour."
+                : status === "validated"
+                ? "Cette simulation est marquée comme validée. Tu peux encore la modifier ou la transformer en bien détenu."
+                : "Valide la simulation pour la retrouver sur ton tableau de bord."}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {onValidate && (
+              <button type="button" onClick={onValidate} className="btn-primary">
+                {status === "validated" ? "Re-valider" : "✓ Valider la simulation"}
+              </button>
+            )}
+            {onConvert && (
+              <button
+                type="button"
+                onClick={onConvert}
+                className="btn-secondary"
+              >
+                🏡 Transformer en bien
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Reco */}
       <div

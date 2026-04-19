@@ -17,6 +17,17 @@ export function FinancementForm() {
         </p>
       </div>
 
+      <div className="info-box">
+        <div className="info-box-title">💡 Le taux nominal, ce n&rsquo;est pas le TAEG</div>
+        <p>
+          Le taux nominal est le taux de ton prêt hors assurance et hors
+          frais. Le simulateur calcule ensuite le{" "}
+          <strong>TEG (Taux Effectif Global)</strong> en intégrant
+          l&rsquo;assurance, les frais de dossier et le coût de la garantie —
+          c&rsquo;est le vrai coût de ton crédit.
+        </p>
+      </div>
+
       <div className="card space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="Montant de l'emprunt" suffix="€">

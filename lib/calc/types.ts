@@ -5,6 +5,24 @@ export type TypeGarantie = "hypotheque" | "ippd" | "cautionnement";
 export type FraisAcquisition = "charge" | "amortissement10";
 export type ChoixRevente = "inflation" | "rendement" | "fixe";
 
+export type ModeDetention =
+  | "direct"
+  | "sci_ir"
+  | "sci_is"
+  | "sarl_familiale"
+  | "indivision";
+
+export type RegimeFiscal =
+  | "ir_foncier_reel"
+  | "ir_micro_foncier"
+  | "ir_bic_lmnp"
+  | "is";
+
+export interface Detention {
+  mode: ModeDetention;
+  regimeFiscal: RegimeFiscal;
+}
+
 export interface BienLoue {
   nombre: number;
   loyerMensuel: number;
@@ -76,6 +94,7 @@ export interface InputsProjet {
   fraisAgence: number;
   fraisRecherche: number;
   anneeAcquisition: number;
+  detention: Detention;
   financement: Financement;
   biens: BienLoue[];
   charges: Charges;

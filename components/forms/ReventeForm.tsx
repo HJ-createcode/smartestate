@@ -17,6 +17,26 @@ export function ReventeForm() {
         </p>
       </div>
 
+      <div className="info-box">
+        <div className="info-box-title">💡 Quel mode choisir ?</div>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            <strong>Inflation</strong> : hypothèse prudente, reflète
+            l&rsquo;évolution passée moyenne des prix immobiliers sur longue
+            période.
+          </li>
+          <li>
+            <strong>Rendement cible</strong> : simule le prix que serait prêt
+            à payer un investisseur en fonction des loyers à ce moment-là —
+            utile pour un actif vraiment patrimonial.
+          </li>
+          <li>
+            <strong>Prix fixe</strong> : tu forces un prix pour tester un
+            scénario précis (dévalorisation, hausse forte…).
+          </li>
+        </ul>
+      </div>
+
       <div className="card space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="Choix du mode de valorisation">

@@ -17,6 +17,17 @@ export function ProjetForm() {
         </p>
       </div>
 
+      <div className="info-box">
+        <div className="info-box-title">💡 Par où commencer ?</div>
+        <p>
+          Si tu découvres un bien à acheter, saisis son prix et son type
+          (ancien ou neuf). Tu pourras ensuite détailler son financement, les
+          loyers attendus et les charges. L&rsquo;horizon d&rsquo;analyse par
+          défaut est de 10 ans — durée standard pour comparer les régimes
+          fiscaux.
+        </p>
+      </div>
+
       <div className="card space-y-5">
         <Field label="Nom du projet">
           <TextInput

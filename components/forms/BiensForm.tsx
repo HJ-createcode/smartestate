@@ -41,6 +41,16 @@ export function BiensForm() {
         </p>
       </div>
 
+      <div className="info-box">
+        <div className="info-box-title">💡 Comment estimer la vacance ?</div>
+        <p>
+          Compte 15 à 30 jours par an pour un logement standard (turn-over et
+          remise en état), 7 à 10 jours pour un bien de qualité en zone
+          tendue. Pour du commerce ou du parking, adapte selon ta connaissance
+          du marché local.
+        </p>
+      </div>
+
       <div className="card space-y-4">
         <table className="w-full text-sm">
           <thead>
