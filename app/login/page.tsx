@@ -22,18 +22,48 @@ export default function LoginPage() {
 
 /**
  * Whitelist le callbackUrl pour empêcher un open redirect.
- * N'autorise que les paths internes (commençant par "/") et rejette
- * les URLs protocol-relative ("//") et les URLs absolues ("http://").
+ *
+ * Stratégie : on résout l'URL candidate contre une origine arbitraire
+ * (`https://internal.invalid`) avec `new URL`. Si elle résout vers une
+ * autre origine, c'est qu'elle contient un schéma ou un host → rejetée.
+ * On bloque aussi les schémas non-http (`javascript:`, `data:`) et les
+ * séquences décodées qui pourraient traverser (`//`, `\\`, `%2f%2f`).
  */
 function sanitizeCallbackUrl(raw: string | null): string {
   const FALLBACK = "/app";
-  if (!raw) return FALLBACK;
-  // "//evil.com" ou "https://evil.com" → rejetés
-  if (raw.startsWith("//")) return FALLBACK;
-  if (!raw.startsWith("/")) return FALLBACK;
-  // "/\\evil.com" (backslash trick sur certains browsers)
-  if (raw.startsWith("/\\")) return FALLBACK;
-  return raw;
+  if (!raw || typeof raw !== "string") return FALLBACK;
+
+  // Rejet rapide des schémas et protocol-relative en clair.
+  if (raw.startsWith("//") || raw.startsWith("\\\\")) return FALLBACK;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return FALLBACK; // http:, javascript:, data:
+
+  // Décode une fois pour attraper %2f%2f ou %5c%5c.
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return FALLBACK;
+  }
+  if (
+    decoded.startsWith("//") ||
+    decoded.startsWith("\\") ||
+    /^[a-z][a-z0-9+.-]*:/i.test(decoded)
+  ) {
+    return FALLBACK;
+  }
+
+  // Résout via URL parser : si le résultat change d'origine, c'est hostile.
+  const BASE = "https://internal.invalid";
+  try {
+    const u = new URL(raw, BASE);
+    if (u.origin !== BASE) return FALLBACK;
+    // Repart de pathname+search+hash pour normaliser (supprime les /../ etc.)
+    const clean = `${u.pathname}${u.search}${u.hash}`;
+    if (!clean.startsWith("/") || clean.startsWith("//")) return FALLBACK;
+    return clean;
+  } catch {
+    return FALLBACK;
+  }
 }
 
 function LoginForm() {

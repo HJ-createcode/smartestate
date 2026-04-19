@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { assetInputSchema } from "@/lib/asset-schema";
 import { rateLimit } from "@/lib/rate-limit";
+import { guardBodySize } from "@/lib/body-guard";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 
@@ -24,6 +25,10 @@ const MAX_ASSETS_PER_USER = 500;
  * existantes de l'utilisateur.
  */
 export async function POST(req: Request) {
+  // 100 assets × ~70 KB max = 7 MB. On plafonne à 8 MB par requête.
+  const tooLarge = guardBodySize(req, 8_000_000);
+  if (tooLarge) return tooLarge;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Non connecté" }, { status: 401 });

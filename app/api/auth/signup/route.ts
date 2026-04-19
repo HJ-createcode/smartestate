@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { guardBodySize } from "@/lib/body-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +20,11 @@ const schema = z.object({
 const genericSuccess = () => NextResponse.json({ ok: true });
 
 export async function POST(req: Request) {
+  // Un signup fait ~300 octets max (email + password + nom). 2 KB limite
+  // largement et stoppe tout body abusif avant parse.
+  const tooLarge = guardBodySize(req, 2_000);
+  if (tooLarge) return tooLarge;
+
   // Rate-limit : 10 créations / 10 min / IP (brute-force / spam-register).
   const ip = clientIp(req);
   const rl = rateLimit(`signup:${ip}`, { max: 10, windowMs: 10 * 60_000 });
@@ -47,13 +53,22 @@ export async function POST(req: Request) {
 
     if (existing) {
       // Anti-énumération : on renvoie toujours la même réponse succès.
-      // Pour égaliser le timing avec la branche "création" qui fait
-      // (1) bcrypt.hash, (2) prisma.user.create, on reproduit ici
-      // (1) bcrypt factice et (2) findUnique factice (même round-trip DB
-      // qu'un insert court sur Neon). L'auto-login côté client échouera
-      // naturellement si l'attaquant a deviné un email existant.
+      // Pour égaliser le timing avec la branche "création" (bcrypt.hash +
+      // prisma.user.create), on refait ici bcrypt.hash + une transaction
+      // interactive qui simule un write et rollback. C'est plus proche
+      // d'un create qu'un findUnique simple (un create prend ~30-60ms
+      // car il écrit dans le WAL, un findUnique ~5-15ms).
       await bcrypt.hash(password, 12);
-      await prisma.user.findUnique({ where: { id: "__timing_pad__" } });
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.user.findUnique({ where: { id: "__timing_pad__" } });
+          await tx.user.findUnique({ where: { id: "__timing_pad2__" } });
+          // Force une petite écriture WAL équivalente à un create raté
+          throw new Error("__rollback__");
+        });
+      } catch {
+        // rollback attendu
+      }
       return genericSuccess();
     }
 

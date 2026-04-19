@@ -58,6 +58,24 @@ const nextConfig = {
         source: "/:path*",
         headers: securityHeaders,
       },
+      // Pages privées : interdire tout cache (CDN, navigateur, proxy).
+      // Évite qu'un proxy intermédiaire partage une page admin entre users.
+      {
+        source: "/admin/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+      },
+      {
+        source: "/app/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+      },
+      {
+        source: "/simulation/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+      },
+      {
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
+      },
     ];
   },
 };

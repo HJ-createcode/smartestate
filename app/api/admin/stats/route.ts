@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +10,18 @@ export async function GET() {
   const session = await getAdminSession();
   if (!session) {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
+  }
+  // Rate-limit admin (compte compromis → empêche le martelage de queries
+  // coûteuses count/groupBy).
+  const rl = rateLimit(`admin-stats:${session.user.email}`, {
+    max: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Trop de requêtes admin." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
   }
 
   const now = new Date();

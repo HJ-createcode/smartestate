@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { isAdminEmail } from "@/lib/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,10 +12,21 @@ export async function GET(req: Request) {
   if (!session) {
     return NextResponse.json({ ok: false, error: "Accès refusé" }, { status: 403 });
   }
+  const rl = rateLimit(`admin-users:${session.user.email}`, {
+    max: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Trop de requêtes admin." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(Number(searchParams.get("limit") ?? 100), 500);
-  const q = (searchParams.get("q") ?? "").trim().toLowerCase();
+  // Tronque `q` : un ILIKE '%<très-long>%' force un sequential scan coûteux.
+  const q = (searchParams.get("q") ?? "").trim().slice(0, 80).toLowerCase();
 
   const users = await prisma.user.findMany({
     where: q

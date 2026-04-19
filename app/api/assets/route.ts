@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { assetInputSchema } from "@/lib/asset-schema";
+import { guardBodySize } from "@/lib/body-guard";
 import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
@@ -23,6 +24,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // 100 KB = 50 KB inputs + 20 KB snapshot + marge + nom.
+  const tooLarge = guardBodySize(req, 100_000);
+  if (tooLarge) return tooLarge;
+
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Non connecté" }, { status: 401 });

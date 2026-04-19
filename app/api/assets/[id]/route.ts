@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { assetUpdateSchema } from "@/lib/asset-schema";
+import { guardBodySize } from "@/lib/body-guard";
 import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
@@ -26,6 +27,9 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const tooLarge = guardBodySize(req, 100_000);
+  if (tooLarge) return tooLarge;
+
   const result = await requireOwner(params.id);
   if (result.error) return result.error;
 
