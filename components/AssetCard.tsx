@@ -135,7 +135,7 @@ export function AssetCard({ asset }: { asset: Asset }) {
           )}
           <button
             type="button"
-            onClick={() => duplicate(asset.id)}
+            onClick={() => void duplicate(asset.id)}
             className="btn-ghost text-xs"
           >
             Dupliquer
@@ -148,7 +148,7 @@ export function AssetCard({ asset }: { asset: Asset }) {
                   `Supprimer "${asset.name}" ? Cette action est irréversible.`
                 )
               ) {
-                remove(asset.id);
+                void remove(asset.id);
               }
             }}
             className="btn-danger text-xs"

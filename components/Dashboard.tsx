@@ -1,6 +1,8 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useAccount } from "@/lib/store/account";
 import { AssetCard } from "@/components/AssetCard";
 import { fmtEUR } from "@/lib/format";
@@ -15,6 +17,8 @@ export function Dashboard() {
   useEffect(() => setHydrated(true), []);
 
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const mode = useAccount((s) => s.mode);
   const list = useAccount((s) => s.list());
   const createSimulation = useAccount((s) => s.createSimulation);
 
@@ -46,8 +50,8 @@ export function Dashboard() {
     }
   );
 
-  function handleNew() {
-    const asset = createSimulation();
+  async function handleNew() {
+    const asset = await createSimulation();
     router.push(`/simulation/${asset.id}`);
   }
 
@@ -77,6 +81,28 @@ export function Dashboard() {
           + Faire une simulation
         </button>
       </div>
+
+      {/* Bandeau mode démo si non connecté */}
+      {status !== "loading" && !session?.user && mode === "local" && (
+        <div className="info-box flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="info-box-title">💾 Mode démo</div>
+            <p className="text-sm text-stone-700">
+              Tes simulations sont enregistrées uniquement dans ce navigateur.
+              Crée un compte gratuit pour les retrouver d&rsquo;un appareil à
+              l&rsquo;autre et les conserver durablement.
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Link href="/login" className="btn-ghost text-sm">
+              Se connecter
+            </Link>
+            <Link href="/signup" className="btn-primary text-sm">
+              Créer un compte
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {isEmpty && (

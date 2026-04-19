@@ -1,96 +1,118 @@
 # SmartEstate
 
-Simulateur web de projet immobilier en SCI : analyse détaillée du comparatif
-IR vs IS, amortissement du prêt, plus-value et cash-flow sur 10 ans.
-
-La logique de calcul est exécutée exclusivement côté serveur via une API
-route Next.js, afin qu'elle ne soit jamais exposée au navigateur.
+Application web de simulation et de suivi de projets immobiliers en SCI.
+Authentification par email / mot de passe, persistance en base Postgres,
+moteur de calcul fiscal (IR / IS) exécuté exclusivement côté serveur.
 
 ## Développement local
 
-Prérequis : Node.js ≥ 18.17.
+Prérequis : Node.js ≥ 18.17 et une base Postgres (Vercel Postgres, Neon,
+Supabase ou locale).
 
 ```bash
 npm install
+cp .env.example .env.local
+# Éditer .env.local : renseigner DATABASE_URL et AUTH_SECRET
+npm run db:push   # applique le schéma Prisma à la base
 npm run dev
 ```
 
 L'application démarre sur http://localhost:3000.
 
-## Scripts disponibles
+### Sans base de données
+
+Le site fonctionne aussi sans `DATABASE_URL` — il se comporte alors en mode
+localStorage (les visiteurs peuvent tester les simulations mais pas créer
+de compte). C'est pratique pour le développement UI pur.
+
+## Scripts
 
 - `npm run dev` — serveur de développement
-- `npm run build` — build de production
+- `npm run build` — build de production (génère le client Prisma)
 - `npm run start` — lance le build de production
 - `npm run lint` — ESLint
 - `npm run typecheck` — vérification TypeScript
+- `npm run db:push` — applique le schéma Prisma à la base (sans migration)
+- `npm run db:studio` — ouvre Prisma Studio (GUI de la base)
 
-## Structure
+## Architecture
 
-- `lib/calc/` — moteur de calcul TypeScript
-  - `constants.ts` — barèmes fiscaux (IR, IS, PS, abattements PV). À mettre à
-    jour chaque année avec la loi de finances.
-  - `notaire.ts`, `loan.ts`, `depreciation.ts`, `ir.ts`, `is.ts`, `sale.ts`,
-    `tax.ts` — modules spécialisés
-  - `index.ts` — orchestrateur appelé par l'API
-- `app/api/calculate/route.ts` — endpoint POST (serveur uniquement)
-- `app/page.tsx` — application single-page avec sidebar
-- `components/forms/` — formulaires par section
-- `components/Results.tsx` — dashboard (KPIs, graphiques Recharts, tables)
-
-## Publier sur GitHub
-
-Depuis ce dossier (`web/`) :
-
-```bash
-git init
-git add .
-git commit -m "Initial commit — SmartEstate MVP"
-git branch -M main
-git remote add origin git@github.com:<ton-compte>/smartestate.git
-git push -u origin main
+```
+app/
+  api/
+    assets/[id]/route.ts    # CRUD d'une simulation (auth requise)
+    assets/route.ts         # Liste + création
+    assets/bulk-import/     # Import en masse (migration localStorage → DB)
+    auth/[...nextauth]/     # NextAuth v5
+    auth/signup/            # Création de compte
+    calculate/              # Moteur de calcul (public, pas d'auth)
+  login/                    # Page de connexion
+  signup/                   # Page de création de compte
+  simulation/[id]/          # Éditeur de simulation
+  page.tsx                  # Dashboard
+auth.ts                     # Config NextAuth avec Credentials provider
+middleware.ts               # Middleware NextAuth (edge-compatible)
+prisma/schema.prisma        # Modèles User, Asset (+ tables NextAuth)
+lib/
+  calc/                     # Moteur de calcul fiscal
+  store/account.ts          # Store zustand dual (localStorage / API)
+  store/inputs.ts           # Éditeur courant
+  prisma.ts                 # Singleton Prisma
+  auth-config.ts            # Config edge-safe (sans Prisma)
 ```
 
-## Déployer sur Vercel
+## Persistance des données
 
-### Option A — via l'interface web (recommandé la première fois)
+Deux modes co-existent :
 
-1. Crée un compte sur https://vercel.com (Sign in with GitHub).
-2. Clique **Add New → Project**, sélectionne le repo `smartestate`.
-3. Vercel détecte automatiquement Next.js. Laisse les réglages par défaut :
-   - **Framework Preset** : Next.js
-   - **Build Command** : `next build`
-   - **Output Directory** : `.next`
-   - **Install Command** : `npm install`
-4. Clique **Deploy**. L'URL publique est disponible en ~1 minute.
+- **Utilisateur non connecté** : le store zustand persiste ses assets dans
+  le localStorage du navigateur. Pas de compte, pas de partage entre
+  appareils.
+- **Utilisateur connecté** : le store appelle l'API `/api/assets/*`. Les
+  données sont en base Postgres, liées à son user id.
 
-### Option B — via la CLI
+À la création de compte ou à la connexion, les assets localStorage sont
+automatiquement migrés vers la DB (`/api/assets/bulk-import`).
 
-```bash
-npm i -g vercel
-vercel login
-vercel         # déploiement preview
-vercel --prod  # déploiement production
-```
+## Déploiement sur Vercel
 
-### Variables d'environnement
+### 1. Connecter le repo
 
-Pour le MVP actuel aucune variable n'est requise. Quand l'auth et Stripe
-seront branchés, ajoute-les dans **Vercel → Project → Settings → Environment
-Variables** en reprenant les clés de `.env.example`.
+https://vercel.com → **Add New Project** → importer `smartestate`.
 
-## Roadmap (hors MVP)
+### 2. Créer la base Postgres
 
-- Authentification + paiement Stripe (abonnement 4,99 €/mois)
-- Export PDF des résultats
-- Déficit foncier reporté 10 ans
-- Distribution de dividendes IS avec choix PFU / barème par associé
-- Comparateur de crédit (2 scénarios côte à côte)
-- Stockage des simulations (Postgres / Supabase)
-- Simulateur gratuit simplifié en landing page
+Dans le dashboard du projet Vercel : **Storage** → **Create Database** →
+**Postgres**. Choisir la région (Paris `cdg1` recommandée). Cliquer
+**Connect to Project** : Vercel injecte automatiquement les variables
+`DATABASE_URL`, `POSTGRES_URL`, etc.
 
-## Notes
+### 3. Configurer le secret d'authentification
 
-- Les textes, libellés et la mise en forme sont originaux.
-- Les barèmes et formules fiscales proviennent du Code général des impôts
-  et de fonctions financières standard (`PMT`, `IPMT`, `PPMT`).
+**Settings → Environment Variables** → ajouter :
+
+- `AUTH_SECRET` — généré avec `openssl rand -base64 32`
+
+Redéployer (onglet Deployments → ⋯ → Redeploy) pour que les variables
+soient prises en compte.
+
+### 4. Appliquer le schéma à la base
+
+Deux options :
+
+- **Depuis ta machine** : copier `.env.local` depuis Vercel (Storage →
+  bouton « .env.local »), puis `npm run db:push`.
+- **Via Vercel CLI** : `vercel env pull .env.local && npm run db:push`
+
+Tu n'as à faire ça qu'au premier déploiement et à chaque modification du
+`schema.prisma`.
+
+## Roadmap
+
+- [ ] Paiement Stripe (abonnement 4,99 €/mois, middleware de vérification)
+- [ ] Email de bienvenue + reset password
+- [ ] Export PDF des résultats
+- [ ] Déficit foncier reporté 10 ans
+- [ ] Distribution dividendes IS (PFU vs barème)
+- [ ] Comparateur de crédit
+- [ ] Simulateur gratuit simplifié (landing page)

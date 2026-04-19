@@ -1,0 +1,96 @@
+// SmartEstate — schéma Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ AUTHENTIFICATION (NextAuth v5) ============
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  // Hash bcrypt du mot de passe. Nullable car pour l'OAuth on n'aura pas de password.
+  passwordHash  String?
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  assets   Asset[]
+}
+
+// Requis par l'adaptateur Prisma de NextAuth, même si on n'utilise que les credentials
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============ MÉTIER ============
+
+enum AssetKind {
+  simulation
+  bien
+}
+
+enum AssetStatus {
+  draft
+  validated
+}
+
+model Asset {
+  id          String      @id @default(cuid())
+  userId      String
+  kind        AssetKind   @default(simulation)
+  status      AssetStatus @default(draft)
+  name        String
+  // Les inputs sérialisés (InputsProjet) + snapshot sont stockés en JSON.
+  // C'est suffisant pour le MVP : ça évite de dupliquer un schéma détaillé
+  // qui évoluerait en même temps que les types TS.
+  inputs      Json
+  snapshot    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  realizedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
