@@ -30,6 +30,15 @@ export const authConfig = {
       if (session.user && token.id) {
         session.user.id = token.id as string;
       }
+      // Détermine le flag admin à partir de l'env var ADMIN_EMAILS.
+      // Edge-compatible : pas d'import Prisma ici.
+      if (session.user?.email) {
+        const admins = (process.env.ADMIN_EMAILS ?? "")
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        session.user.isAdmin = admins.includes(session.user.email.toLowerCase());
+      }
       return session;
     },
     authorized({ auth, request: { nextUrl } }) {

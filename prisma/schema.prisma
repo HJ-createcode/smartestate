@@ -25,6 +25,7 @@ model User {
   accounts Account[]
   sessions Session[]
   assets   Asset[]
+  payments Payment[]
 }
 
 // Requis par l'adaptateur Prisma de NextAuth, même si on n'utilise que les credentials
@@ -93,4 +94,32 @@ model Asset {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ============ PAIEMENTS ============
+// Modèle prêt pour l'intégration Stripe (abonnement 4,99 €/mois).
+// Pas encore peuplé — Stripe sera connecté dans une étape ultérieure.
+
+enum PaymentStatus {
+  succeeded
+  pending
+  failed
+  refunded
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  userId           String
+  amountCents      Int
+  currency         String        @default("EUR")
+  status           PaymentStatus
+  stripePaymentId  String?       @unique
+  stripeCustomerId String?
+  description      String?
+  createdAt        DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }

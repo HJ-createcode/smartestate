@@ -79,36 +79,57 @@ function UserMenu() {
     .toUpperCase();
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-sun-50 transition-colors"
-      >
-        <span className="w-8 h-8 rounded-full bg-sun-200 text-stone-900 flex items-center justify-center font-semibold text-sm">
-          {initial}
-        </span>
-        <span className="text-sm text-stone-800 max-w-[140px] truncate hidden sm:block">
-          {session.user.name || session.user.email}
-        </span>
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-sun-100 rounded-lg shadow-soft py-1 z-30">
-          <div className="px-3 py-2 border-b border-stone-100">
-            <div className="text-xs text-stone-500">Connecté avec</div>
-            <div className="text-sm text-stone-900 truncate">
-              {session.user.email}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-sun-50"
-          >
-            Se déconnecter
-          </button>
-        </div>
+    <div className="flex items-center gap-1">
+      {session.user.isAdmin && (
+        <Link
+          href="/admin"
+          className="hidden sm:inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-sun-100 text-sun-800 hover:bg-sun-200 transition-colors font-medium"
+          title="Accès administration"
+        >
+          <span aria-hidden>🛠</span>
+          <span>Admin</span>
+        </Link>
       )}
+      <div className="relative" ref={ref}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-sun-50 transition-colors"
+        >
+          <span className="w-8 h-8 rounded-full bg-sun-200 text-stone-900 flex items-center justify-center font-semibold text-sm">
+            {initial}
+          </span>
+          <span className="text-sm text-stone-800 max-w-[140px] truncate hidden sm:block">
+            {session.user.name || session.user.email}
+          </span>
+        </button>
+        {open && (
+          <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-sun-100 rounded-lg shadow-soft py-1 z-30">
+            <div className="px-3 py-2 border-b border-stone-100">
+              <div className="text-xs text-stone-500">Connecté avec</div>
+              <div className="text-sm text-stone-900 truncate">
+                {session.user.email}
+              </div>
+            </div>
+            {session.user.isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="block px-3 py-2 text-sm text-stone-700 hover:bg-sun-50 sm:hidden"
+              >
+                🛠 Administration
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-sun-50"
+            >
+              Se déconnecter
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
