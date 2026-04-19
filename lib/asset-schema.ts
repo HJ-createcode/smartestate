@@ -39,16 +39,18 @@ const jsonObject = z
   .record(z.unknown())
   .refine((v) => !Array.isArray(v), "Doit être un objet, pas un tableau");
 
+// Ordre : checkDepth d'abord (rapide, échoue tôt sur imbrication abusive),
+// puis checkSize (coûteux car JSON.stringify) pour éviter l'amplification CPU.
 const inputsSchema = jsonObject
-  .refine((v) => checkSize(v, MAX_INPUTS_SIZE_BYTES), "Inputs trop volumineux")
-  .refine(checkDepth, "Structure trop imbriquée");
+  .refine(checkDepth, "Structure trop imbriquée")
+  .refine((v) => checkSize(v, MAX_INPUTS_SIZE_BYTES), "Inputs trop volumineux");
 
 const snapshotSchema = jsonObject
+  .refine(checkDepth, "Structure trop imbriquée")
   .refine(
     (v) => checkSize(v, MAX_SNAPSHOT_SIZE_BYTES),
     "Snapshot trop volumineux"
-  )
-  .refine(checkDepth, "Structure trop imbriquée");
+  );
 
 export const assetSnapshotSchema = snapshotSchema;
 

@@ -33,8 +33,14 @@ export async function GET() {
     prisma.asset.count(),
     prisma.asset.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.asset.groupBy({ by: ["kind"], _count: { _all: true } }),
+    // Biens acquis sur 30 j uniquement (kind:bien). Exclut les simulations
+    // validées pour ne pas gonfler artificiellement ce KPI d'acquisition.
     prisma.asset.count({
-      where: { status: "validated", updatedAt: { gte: thirtyDaysAgo } },
+      where: {
+        kind: "bien",
+        status: "validated",
+        updatedAt: { gte: thirtyDaysAgo },
+      },
     }),
     prisma.payment.aggregate({
       where: { status: "succeeded" },

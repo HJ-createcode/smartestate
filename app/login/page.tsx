@@ -20,10 +20,26 @@ export default function LoginPage() {
   );
 }
 
+/**
+ * Whitelist le callbackUrl pour empêcher un open redirect.
+ * N'autorise que les paths internes (commençant par "/") et rejette
+ * les URLs protocol-relative ("//") et les URLs absolues ("http://").
+ */
+function sanitizeCallbackUrl(raw: string | null): string {
+  const FALLBACK = "/app";
+  if (!raw) return FALLBACK;
+  // "//evil.com" ou "https://evil.com" → rejetés
+  if (raw.startsWith("//")) return FALLBACK;
+  if (!raw.startsWith("/")) return FALLBACK;
+  // "/\\evil.com" (backslash trick sur certains browsers)
+  if (raw.startsWith("/\\")) return FALLBACK;
+  return raw;
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/app";
+  const callbackUrl = sanitizeCallbackUrl(searchParams.get("callbackUrl"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

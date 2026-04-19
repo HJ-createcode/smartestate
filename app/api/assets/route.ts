@@ -7,6 +7,9 @@ import type { Prisma } from "@prisma/client";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Plafond global par user — aligné avec bulk-import.
+const MAX_ASSETS_PER_USER = 500;
+
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -31,6 +34,18 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { ok: false, error: parsed.error.issues[0]?.message ?? "Entrée invalide" },
         { status: 400 }
+      );
+    }
+    const currentCount = await prisma.asset.count({
+      where: { userId: session.user.id },
+    });
+    if (currentCount >= MAX_ASSETS_PER_USER) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Limite de ${MAX_ASSETS_PER_USER} biens/simulations atteinte.`,
+        },
+        { status: 409 }
       );
     }
     const asset = await prisma.asset.create({

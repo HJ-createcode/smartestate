@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const schema = z.object({
   email: z.string().email("Email invalide").max(254),
   password: z.string().min(8, "Mot de passe : 8 caractères minimum").max(128),
   name: z.string().trim().min(1).max(80).optional(),
 });
+
+// Réponse générique de succès, utilisée quelle que soit la situation réelle
+// pour empêcher l'énumération de comptes.
+const genericSuccess = () => NextResponse.json({ ok: true });
 
 export async function POST(req: Request) {
   // Rate-limit : 10 créations / 10 min / IP (brute-force / spam-register).
@@ -40,25 +46,38 @@ export async function POST(req: Request) {
     });
 
     if (existing) {
-      // Anti-énumération : on renvoie toujours la même réponse succès et on
-      // effectue un bcrypt factice pour égaliser le temps de réponse.
-      // L'auto-login côté client échouera (mauvais mot de passe) pour un
-      // attaquant qui tente un email déjà pris, et redirigera proprement
-      // vers /login. Un nouvel utilisateur légitime ne voit rien.
+      // Anti-énumération : on renvoie toujours la même réponse succès.
+      // Pour égaliser le timing avec la branche "création" qui fait
+      // (1) bcrypt.hash, (2) prisma.user.create, on reproduit ici
+      // (1) bcrypt factice et (2) findUnique factice (même round-trip DB
+      // qu'un insert court sur Neon). L'auto-login côté client échouera
+      // naturellement si l'attaquant a deviné un email existant.
       await bcrypt.hash(password, 12);
-      return NextResponse.json({ ok: true });
+      await prisma.user.findUnique({ where: { id: "__timing_pad__" } });
+      return genericSuccess();
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.user.create({
-      data: { email: normalized, passwordHash, name },
-      select: { id: true },
-    });
+    try {
+      await prisma.user.create({
+        data: { email: normalized, passwordHash, name },
+        select: { id: true },
+      });
+    } catch (e) {
+      // Race condition : deux signups simultanés avec le même email neuf
+      // passent findUnique (null), l'un créé, l'autre tape P2002. On
+      // absorbe l'erreur pour rester indistinguable du cas normal.
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        return genericSuccess();
+      }
+      throw e;
+    }
 
-    return NextResponse.json({ ok: true });
+    return genericSuccess();
   } catch (e) {
-    // Ne logger que le message, pas la stack (évite fuite de noms de
-    // colonnes/contraintes Prisma dans les logs Vercel).
     console.error("[signup]", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { ok: false, error: "Erreur serveur" },

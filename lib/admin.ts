@@ -7,12 +7,25 @@ import { auth } from "@/auth";
  * Pas de stockage en base : ça évite une migration et permet d'ajouter/retirer
  * un admin sans toucher aux données.
  */
+let warnedOnEmpty = false;
+
 export function getAdminEmails(): string[] {
   const raw = process.env.ADMIN_EMAILS ?? "";
-  return raw
+  const parsed = raw
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
+
+  // Warn une seule fois par instance si la var est définie mais ne produit
+  // aucune entrée valide (ex. "  ", ","). Signal d'une mauvaise config.
+  if (!warnedOnEmpty && raw.trim() !== "" && parsed.length === 0) {
+    warnedOnEmpty = true;
+    console.warn(
+      "[admin] ADMIN_EMAILS est définie mais ne contient aucun email valide " +
+        "— le panneau admin sera inaccessible."
+    );
+  }
+  return parsed;
 }
 
 export function isAdminEmail(email: string | null | undefined): boolean {
