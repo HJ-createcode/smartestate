@@ -23,6 +23,11 @@ import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 import * as readline from "readline";
 import { Writable } from "stream";
+import {
+  firstPasswordError,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+} from "../lib/password-policy";
 
 function promptPassword(label: string): Promise<string> {
   return new Promise((resolve) => {
@@ -75,11 +80,15 @@ async function main() {
   }
 
   if (!password) {
-    password = await promptPassword(`Mot de passe pour ${email} : `);
-    if (password.length < 8) {
-      console.error("❌ Mot de passe trop court (min 8 caractères).");
-      process.exit(1);
-    }
+    password = await promptPassword(
+      `Mot de passe pour ${email} (${PASSWORD_MIN}-${PASSWORD_MAX} car., lettre+chiffre+symbole) : `
+    );
+  }
+
+  const pwdErr = firstPasswordError(password);
+  if (pwdErr) {
+    console.error(`❌ ${pwdErr}`);
+    process.exit(1);
   }
 
   const normalized = email.toLowerCase().trim();

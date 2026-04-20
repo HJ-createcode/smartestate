@@ -1,22 +1,40 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { AuthLayout } from "@/components/AuthLayout";
 import { useAccount } from "@/lib/store/account";
+import {
+  evaluatePassword,
+  isValidPassword,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+} from "@/lib/password-policy";
 
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [pwdFocused, setPwdFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const pwdRules = useMemo(() => evaluatePassword(password), [password]);
+  const pwdValid = isValidPassword(password);
+  // N'afficher la checklist qu'une fois que l'utilisateur a commencé à taper
+  // ou quitté le champ avec une valeur invalide — évite de l'agresser à l'ouverture.
+  const showChecklist = pwdFocused || password.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    // Garde-fou client : le serveur re-vérifie de toute façon.
+    if (!pwdValid) {
+      setError("Le mot de passe ne respecte pas les règles ci-dessous.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/signup", {
@@ -91,13 +109,45 @@ export default function SignupPage() {
           <input
             type="password"
             required
-            minLength={8}
+            minLength={PASSWORD_MIN}
+            maxLength={PASSWORD_MAX}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onFocus={() => setPwdFocused(true)}
+            onBlur={() => setPwdFocused(false)}
             className="input-base"
-            placeholder="8 caractères minimum"
+            placeholder={`Entre ${PASSWORD_MIN} et ${PASSWORD_MAX} caractères`}
+            aria-describedby="pwd-rules"
           />
+          {showChecklist && (
+            <ul
+              id="pwd-rules"
+              className="mt-2 space-y-1 text-xs"
+              aria-live="polite"
+            >
+              {pwdRules.map((r) => (
+                <li
+                  key={r.id}
+                  className={`flex items-center gap-2 ${
+                    r.ok ? "text-emerald-700" : "text-stone-500"
+                  }`}
+                >
+                  <span
+                    aria-hidden
+                    className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold ${
+                      r.ok
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-stone-100 text-stone-400"
+                    }`}
+                  >
+                    {r.ok ? "✓" : "•"}
+                  </span>
+                  <span>{r.label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         {error && (
           <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
@@ -106,7 +156,7 @@ export default function SignupPage() {
         )}
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !pwdValid || !email}
           className="btn-primary w-full disabled:opacity-60"
         >
           {loading ? "Création…" : "Créer mon compte"}

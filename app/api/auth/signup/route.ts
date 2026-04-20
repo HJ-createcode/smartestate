@@ -5,13 +5,24 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { guardBodySize } from "@/lib/body-guard";
+import {
+  firstPasswordError,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+} from "@/lib/password-policy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// La vraie politique est appliquée via firstPasswordError() juste après
+// parse, pour pouvoir renvoyer le message exact de la règle violée.
+// Ici on garde simplement une borne large pour éviter du parse inutile.
 const schema = z.object({
   email: z.string().email("Email invalide").max(254),
-  password: z.string().min(8, "Mot de passe : 8 caractères minimum").max(128),
+  password: z
+    .string()
+    .min(PASSWORD_MIN, `Mot de passe : ${PASSWORD_MIN} caractères minimum`)
+    .max(PASSWORD_MAX, `Mot de passe : ${PASSWORD_MAX} caractères maximum`),
   name: z.string().trim().min(1).max(80).optional(),
 });
 
@@ -45,6 +56,14 @@ export async function POST(req: Request) {
       );
     }
     const { email, password, name } = parsed.data;
+
+    // Politique de complexité (lettre + chiffre + symbole). Les bornes de
+    // longueur ont déjà été vérifiées par le schema Zod ci-dessus.
+    const pwdErr = firstPasswordError(password);
+    if (pwdErr) {
+      return NextResponse.json({ ok: false, error: pwdErr }, { status: 400 });
+    }
+
     const normalized = email.toLowerCase().trim();
 
     const existing = await prisma.user.findUnique({
