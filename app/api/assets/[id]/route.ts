@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { assetUpdateSchema } from "@/lib/asset-schema";
 import { guardBodySize } from "@/lib/body-guard";
+import { rateLimit } from "@/lib/rate-limit";
 import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
@@ -80,6 +81,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const result = await requireOwner(params.id);
   if (result.error) return result.error;
+  // Rate-limit sur DELETE : un user légitime ne supprime pas 60 assets/min.
+  // Si un script tourne en boucle (erreur ou abus), on le coupe.
+  const rl = rateLimit(`asset-delete:${result.session.user!.id!}`, {
+    max: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Trop de suppressions récentes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
   await prisma.asset.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

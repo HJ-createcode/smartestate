@@ -55,20 +55,17 @@ export async function POST(req: Request) {
       // Anti-énumération : on renvoie toujours la même réponse succès.
       // Pour égaliser le timing avec la branche "création" (bcrypt.hash +
       // prisma.user.create), on refait ici bcrypt.hash + une transaction
-      // interactive qui simule un write et rollback. C'est plus proche
-      // d'un create qu'un findUnique simple (un create prend ~30-60ms
-      // car il écrit dans le WAL, un findUnique ~5-15ms).
+      // interactive avec deux findUnique + un SELECT raw. L'objectif est
+      // de se rapprocher du coût d'un create (quelques round-trips DB
+      // dans une transaction) sans écrire réellement, et SANS throw pour
+      // ne pas polluer les logs Prisma en "error".
       await bcrypt.hash(password, 12);
-      try {
-        await prisma.$transaction(async (tx) => {
-          await tx.user.findUnique({ where: { id: "__timing_pad__" } });
-          await tx.user.findUnique({ where: { id: "__timing_pad2__" } });
-          // Force une petite écriture WAL équivalente à un create raté
-          throw new Error("__rollback__");
-        });
-      } catch {
-        // rollback attendu
-      }
+      await prisma.$transaction(async (tx) => {
+        await tx.user.findUnique({ where: { id: "__timing_pad__" } });
+        await tx.user.findUnique({ where: { id: "__timing_pad2__" } });
+        // Un SELECT 1 pour ajouter un tour dans la transaction.
+        await tx.$queryRaw`SELECT 1`;
+      });
       return genericSuccess();
     }
 

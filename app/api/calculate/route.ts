@@ -38,13 +38,14 @@ export async function POST(req: Request) {
     const data = calculerTout(body.inputs);
     return NextResponse.json<CalculateResponse>({ ok: true, data });
   } catch (e) {
-    // Ne pas fuiter le message brut (pourrait contenir des détails internes).
-    const safeMsg =
-      e instanceof Error && e.message.length < 200
-        ? e.message
-        : "Erreur de calcul";
+    // Ne jamais fuiter le message brut au client : le moteur manipule des
+    // noms de variables et barèmes internes qui n'ont pas à sortir.
+    console.error(
+      "[calculate]",
+      e instanceof Error ? e.message : String(e)
+    );
     return NextResponse.json<CalculateResponse>(
-      { ok: false, errors: [safeMsg] },
+      { ok: false, errors: ["Erreur de calcul"] },
       { status: 500 }
     );
   }
